@@ -37,8 +37,8 @@ namespace WpfApp1
                 { 0, 0, 0, 0, 0 },
                 { 0, 0, 0, 0, 0 }
             };
-            int[] defaultSupply = { 200, 350, 300 };
-            int[] defaultDemand = { 270, 130, 190, 150, 110 };
+            int[] defaultSupply = { 0, 0, 0 };
+            int[] defaultDemand = { 0, 0, 0, 0, 0 };
 
             for (int i = 0; i < RowsCount; i++)
             {
