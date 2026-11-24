@@ -20,7 +20,6 @@
         <TextBlock x:Name="TxtInputTitle" Grid.Row="0" Text="Ввод исходных данных"
                    FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <!-- Размер таблицы -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="Поставщиков (строк):" VerticalAlignment="Center" Margin="0,0,5,0"/>
             <TextBox x:Name="TxtRows" Text="3" Width="45" Padding="3" Margin="0,0,15,0"
