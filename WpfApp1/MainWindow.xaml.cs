@@ -16,8 +16,8 @@ namespace WpfApp1
 
         private DataTable _inputTable;
         private DataTable _resultTable;
-        private int _rows = 3; // поставщики
-        private int _cols = 5; // потребители
+        private int _rows = 3; 
+        private int _cols = 5; 
         private string _resultMethod = "";
         private string _resultCost = "";
 
@@ -26,8 +26,6 @@ namespace WpfApp1
             InitializeComponent();
             BuildInputGrid(_rows, _cols);
         }
-
-        // ---------- Построение таблицы ввода ----------
 
         private void BuildInputGrid(int rows, int cols)
         {
@@ -85,8 +83,6 @@ namespace WpfApp1
             SetButtonStyle(BtnMinElement, false);
         }
 
-        // ---------- Кнопки: размер, очистка ----------
-
         private void BtnCreate_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(TxtRows.Text.Trim(), out int rows) ||
@@ -113,10 +109,7 @@ namespace WpfApp1
                 return;
 
             InputGrid.CommitEdit(DataGridEditingUnit.Row, true);
-            BuildInputGrid(_rows, _cols); // тот же размер, все значения = 0, результат сброшен
-        }
-
-        // ---------- Чтение данных ----------
+            BuildInputGrid(_rows, _cols);         }
 
         private bool TryReadData(out int[] supply, out int[] demand, out int[,] costs)
         {
@@ -159,8 +152,6 @@ namespace WpfApp1
                 return false;
             }
         }
-
-        // ---------- Методы решения ----------
 
         private void BtnNorthWest_Click(object sender, RoutedEventArgs e)
         {
@@ -315,8 +306,6 @@ namespace WpfApp1
             TxtTotalCost.Text = _resultCost;
         }
 
-        // ---------- Экспорт в Excel ----------
-
         private void BtnExport_Click(object sender, RoutedEventArgs e)
         {
             InputGrid.CommitEdit(DataGridEditingUnit.Row, true);
@@ -382,8 +371,6 @@ namespace WpfApp1
             ws.Columns().AdjustToContents();
         }
 
-        // ---------- Импорт из Excel ----------
-
         private void BtnImport_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog { Filter = "Excel (*.xlsx)|*.xlsx" };
@@ -396,15 +383,13 @@ namespace WpfApp1
 
                 using (var wb = new XLWorkbook(dialog.FileName))
                 {
-                    var ws = wb.Worksheet(1); // формат такой же, как при экспорте (лист «Исходные данные»)
+                    var ws = wb.Worksheet(1); 
 
                     var lastRowUsed = ws.LastRowUsed();
                     var lastColUsed = ws.LastColumnUsed();
                     if (lastRowUsed == null || lastColUsed == null)
                         throw new FormatException("Лист пуст.");
 
-                    // строка 1 — заголовки, последняя строка — потребности;
-                    // столбец 1 — названия, последний столбец — запасы
                     rows = lastRowUsed.RowNumber() - 2;
                     cols = lastColUsed.ColumnNumber() - 2;
 
@@ -437,7 +422,6 @@ namespace WpfApp1
                     }
                 }
 
-                // файл прочитан без ошибок — теперь можно перестроить таблицу
                 BuildInputGrid(rows, cols);
                 TxtRows.Text = rows.ToString();
                 TxtCols.Text = cols.ToString();
@@ -446,7 +430,6 @@ namespace WpfApp1
                 {
                     for (int j = 0; j <= cols; j++)
                     {
-                        // для строки потребностей последняя ячейка (итог запасов) остаётся 0
                         if (i == rows && j == cols) continue;
                         _inputTable.Rows[i][j + 1] = values[i, j];
                     }
