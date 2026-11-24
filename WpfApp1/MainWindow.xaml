@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Транспортная задача" Height="680" Width="900">
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -16,32 +17,49 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Ввод исходных данных (3 поставщика, 5 потребителей)" 
+        <TextBlock x:Name="TxtInputTitle" Grid.Row="0" Text="Ввод исходных данных"
                    FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <DataGrid x:Name="InputGrid" Grid.Row="1" AutoGenerateColumns="False" 
-                  CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False"
-                  HeadersVisibility="All" GridLinesVisibility="All" RowHeight="34" ColumnWidth="*"
-                  Margin="0,0,0,15"/>
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,15">
-            <Button x:Name="BtnNorthWest" Content="Метод северо-западного угла" 
-                    Padding="15,8" Margin="0,0,10,0" Click="BtnNorthWest_Click"
-                    Background="#E1F0FF" BorderBrush="#0078D7" FontWeight="SemiBold"/>
-            <Button x:Name="BtnMinElement" Content="Метод минимальных элементов" 
-                    Padding="15,8" Click="BtnMinElement_Click"
-                    Background="#F0F0F0" BorderBrush="#ABABAB"/>
+        <!-- Размер таблицы -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Поставщиков (строк):" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBox x:Name="TxtRows" Text="3" Width="45" Padding="3" Margin="0,0,15,0"
+                     HorizontalContentAlignment="Center"/>
+            <TextBlock Text="Потребителей (столбцов):" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBox x:Name="TxtCols" Text="5" Width="45" Padding="3" Margin="0,0,15,0"
+                     HorizontalContentAlignment="Center"/>
+            <Button x:Name="BtnCreate" Content="Создать таблицу" Padding="12,5" Click="BtnCreate_Click"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="3" Text="Опорный план перевозок:" 
+        <DataGrid x:Name="InputGrid" Grid.Row="2" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False"
+                  HeadersVisibility="All" GridLinesVisibility="All" RowHeight="34" ColumnWidth="*"
+                  MaxHeight="260" Margin="0,0,0,15"/>
+
+        <WrapPanel Grid.Row="3" Margin="0,0,0,15">
+            <Button x:Name="BtnNorthWest" Content="Метод северо-западного угла"
+                    Padding="15,8" Margin="0,0,10,5" Click="BtnNorthWest_Click"
+                    Background="#F0F0F0" BorderBrush="#ABABAB"/>
+            <Button x:Name="BtnMinElement" Content="Метод минимальных элементов"
+                    Padding="15,8" Margin="0,0,25,5" Click="BtnMinElement_Click"
+                    Background="#F0F0F0" BorderBrush="#ABABAB"/>
+            <Button x:Name="BtnClear" Content="Очистить" Padding="15,8" Margin="0,0,10,5"
+                    Click="BtnClear_Click"/>
+            <Button x:Name="BtnImport" Content="Импорт из Excel" Padding="15,8" Margin="0,0,10,5"
+                    Click="BtnImport_Click"/>
+            <Button x:Name="BtnExport" Content="Экспорт в Excel" Padding="15,8" Margin="0,0,0,5"
+                    Click="BtnExport_Click"/>
+        </WrapPanel>
+
+        <TextBlock Grid.Row="4" Text="Опорный план перевозок:"
                    FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
 
-        <DataGrid x:Name="ResultGrid" Grid.Row="4" AutoGenerateColumns="False" 
+        <DataGrid x:Name="ResultGrid" Grid.Row="5" AutoGenerateColumns="False"
                   CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="All"
                   GridLinesVisibility="All" AlternatingRowBackground="#F9F9F9"
                   RowHeight="36" ColumnWidth="*"/>
 
-        <Border Grid.Row="5" Background="#F3F3F3" Padding="12" CornerRadius="4" Margin="0,15,0,0">
+        <Border Grid.Row="6" Background="#F3F3F3" Padding="12" CornerRadius="4" Margin="0,15,0,0">
             <StackPanel>
                 <TextBlock x:Name="TxtMethodInfo" Text="Выберите метод решения" FontWeight="Bold" Margin="0,0,0,5"/>
                 <TextBlock x:Name="TxtTotalCost" Text="Целевая функция F(x) = 0" FontSize="16" Foreground="#005A9E" FontWeight="Bold"/>

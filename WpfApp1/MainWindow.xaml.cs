@@ -5,60 +5,54 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using ClosedXML.Excel;
+using Microsoft.Win32;
 
 namespace WpfApp1
 {
     public partial class MainWindow : Window
     {
+        private const int MaxSize = 20;
+
         private DataTable _inputTable;
-        private const int RowsCount = 3;
-        private const int ColsCount = 5;
+        private DataTable _resultTable;
+        private int _rows = 3; // поставщики
+        private int _cols = 5; // потребители
+        private string _resultMethod = "";
+        private string _resultCost = "";
 
         public MainWindow()
         {
             InitializeComponent();
-            InitializeInputGrid();
+            BuildInputGrid(_rows, _cols);
         }
 
-        private void InitializeInputGrid()
+        // ---------- Построение таблицы ввода ----------
+
+        private void BuildInputGrid(int rows, int cols)
         {
+            _rows = rows;
+            _cols = cols;
+
             _inputTable = new DataTable();
             _inputTable.Columns.Add("Поставщик \\ Потребитель", typeof(string));
-
-            for (int j = 0; j < ColsCount; j++)
-            {
+            for (int j = 0; j < _cols; j++)
                 _inputTable.Columns.Add($"B{j + 1}", typeof(int));
-            }
             _inputTable.Columns.Add("Запасы (ai)", typeof(int));
 
-            int[,] defaultCosts =
-            {
-                { 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0 }
-            };
-            int[] defaultSupply = { 0, 0, 0 };
-            int[] defaultDemand = { 0, 0, 0, 0, 0 };
-
-            for (int i = 0; i < RowsCount; i++)
+            for (int i = 0; i < _rows; i++)
             {
                 DataRow row = _inputTable.NewRow();
                 row[0] = $"A{i + 1}";
-                for (int j = 0; j < ColsCount; j++)
-                {
-                    row[j + 1] = defaultCosts[i, j];
-                }
-                row[ColsCount + 1] = defaultSupply[i];
+                for (int j = 0; j <= _cols; j++)
+                    row[j + 1] = 0;
                 _inputTable.Rows.Add(row);
             }
 
             DataRow demandRow = _inputTable.NewRow();
             demandRow[0] = "Потребности (bj)";
-            for (int j = 0; j < ColsCount; j++)
-            {
-                demandRow[j + 1] = defaultDemand[j];
-            }
-            demandRow[ColsCount + 1] = 0;
+            for (int j = 0; j <= _cols; j++)
+                demandRow[j + 1] = 0;
             _inputTable.Rows.Add(demandRow);
 
             InputGrid.Columns.Clear();
@@ -72,39 +66,87 @@ namespace WpfApp1
                     IsReadOnly = (c == 0)
                 });
             }
-
             InputGrid.ItemsSource = _inputTable.DefaultView;
+
+            TxtInputTitle.Text = $"Ввод исходных данных (поставщиков: {_rows}, потребителей: {_cols})";
+            ResetResult();
         }
+
+        private void ResetResult()
+        {
+            ResultGrid.ItemsSource = null;
+            ResultGrid.Columns.Clear();
+            _resultTable = null;
+            _resultMethod = "";
+            _resultCost = "";
+            TxtMethodInfo.Text = "Выберите метод решения";
+            TxtTotalCost.Text = "Целевая функция F(x) = 0";
+            SetButtonStyle(BtnNorthWest, false);
+            SetButtonStyle(BtnMinElement, false);
+        }
+
+        // ---------- Кнопки: размер, очистка ----------
+
+        private void BtnCreate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(TxtRows.Text.Trim(), out int rows) ||
+            !int.TryParse(TxtCols.Text.Trim(), out int cols) ||
+            rows < 1 || cols < 1 || rows > MaxSize || cols > MaxSize)
+            {
+                MessageBox.Show($"Введите целые числа от 1 до {MaxSize} для количества строк и столбцов.",
+                "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (MessageBox.Show("Таблица будет создана заново, введённые данные пропадут. Продолжить?",
+            "Новая таблица", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            InputGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            BuildInputGrid(rows, cols);
+        }
+
+        private void BtnClear_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Стереть все введённые данные и результат?",
+            "Очистка", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            InputGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            BuildInputGrid(_rows, _cols); // тот же размер, все значения = 0, результат сброшен
+        }
+
+        // ---------- Чтение данных ----------
 
         private bool TryReadData(out int[] supply, out int[] demand, out int[,] costs)
         {
-            supply = new int[RowsCount];
-            demand = new int[ColsCount];
-            costs = new int[RowsCount, ColsCount];
+            supply = new int[_rows];
+            demand = new int[_cols];
+            costs = new int[_rows, _cols];
 
             try
             {
-                for (int i = 0; i < RowsCount; i++)
+                for (int i = 0; i < _rows; i++)
                 {
-                    for (int j = 0; j < ColsCount; j++)
+                    for (int j = 0; j < _cols; j++)
                     {
                         costs[i, j] = Convert.ToInt32(_inputTable.Rows[i][j + 1]);
                         if (costs[i, j] < 0) throw new Exception();
                     }
-                    supply[i] = Convert.ToInt32(_inputTable.Rows[i][ColsCount + 1]);
+                    supply[i] = Convert.ToInt32(_inputTable.Rows[i][_cols + 1]);
                     if (supply[i] < 0) throw new Exception();
                 }
 
-                for (int j = 0; j < ColsCount; j++)
+                for (int j = 0; j < _cols; j++)
                 {
-                    demand[j] = Convert.ToInt32(_inputTable.Rows[RowsCount][j + 1]);
+                    demand[j] = Convert.ToInt32(_inputTable.Rows[_rows][j + 1]);
                     if (demand[j] < 0) throw new Exception();
                 }
 
                 if (supply.Sum() != demand.Sum())
                 {
                     MessageBox.Show($"Задача не сбалансирована! Сумма запасов ({supply.Sum()}) не равна сумме потребностей ({demand.Sum()}).",
-                                    "Ошибка баланса", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "Ошибка баланса", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
 
@@ -113,10 +155,12 @@ namespace WpfApp1
             catch
             {
                 MessageBox.Show("Проверьте корректность введенных чисел. Все значения должны быть целыми неотрицательными числами.",
-                                "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Error);
+                "Ошибка ввода", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
+
+        // ---------- Методы решения ----------
 
         private void BtnNorthWest_Click(object sender, RoutedEventArgs e)
         {
@@ -136,25 +180,36 @@ namespace WpfApp1
             SolveMinElement(supply, demand, costs);
         }
 
+        private static void SetButtonStyle(Button button, bool active)
+        {
+            if (active)
+            {
+                button.Background = new SolidColorBrush(Color.FromRgb(225, 240, 255));
+                button.BorderBrush = new SolidColorBrush(Color.FromRgb(0, 120, 215));
+                button.FontWeight = FontWeights.SemiBold;
+            }
+            else
+            {
+                button.Background = new SolidColorBrush(Color.FromRgb(240, 240, 240));
+                button.BorderBrush = new SolidColorBrush(Color.FromRgb(171, 171, 171));
+                button.FontWeight = FontWeights.Normal;
+            }
+        }
+
         private void HighlightActiveButton(Button active, Button inactive)
         {
-            active.Background = new SolidColorBrush(Color.FromRgb(225, 240, 255));
-            active.BorderBrush = new SolidColorBrush(Color.FromRgb(0, 120, 215));
-            active.FontWeight = FontWeights.SemiBold;
-
-            inactive.Background = new SolidColorBrush(Color.FromRgb(240, 240, 240));
-            inactive.BorderBrush = new SolidColorBrush(Color.FromRgb(171, 171, 171));
-            inactive.FontWeight = FontWeights.Normal;
+            SetButtonStyle(active, true);
+            SetButtonStyle(inactive, false);
         }
 
         private void SolveNorthWest(int[] supply, int[] demand, int[,] costs)
         {
-            int[,] plan = new int[RowsCount, ColsCount];
+            int[,] plan = new int[_rows, _cols];
             int[] a = (int[])supply.Clone();
             int[] b = (int[])demand.Clone();
 
             int i = 0, j = 0;
-            while (i < RowsCount && j < ColsCount)
+            while (i < _rows && j < _cols)
             {
                 int quantity = Math.Min(a[i], b[j]);
                 plan[i, j] = quantity;
@@ -170,21 +225,21 @@ namespace WpfApp1
 
         private void SolveMinElement(int[] supply, int[] demand, int[,] costs)
         {
-            int[,] plan = new int[RowsCount, ColsCount];
+            int[,] plan = new int[_rows, _cols];
             int[] a = (int[])supply.Clone();
             int[] b = (int[])demand.Clone();
-            bool[] rowClosed = new bool[RowsCount];
-            bool[] colClosed = new bool[ColsCount];
+            bool[] rowClosed = new bool[_rows];
+            bool[] colClosed = new bool[_cols];
 
             while (true)
             {
                 int minCost = int.MaxValue;
                 int minI = -1, minJ = -1;
 
-                for (int i = 0; i < RowsCount; i++)
+                for (int i = 0; i < _rows; i++)
                 {
                     if (rowClosed[i]) continue;
-                    for (int j = 0; j < ColsCount; j++)
+                    for (int j = 0; j < _cols; j++)
                     {
                         if (colClosed[j]) continue;
                         if (costs[i, j] < minCost)
@@ -217,29 +272,30 @@ namespace WpfApp1
             DataTable dt = new DataTable();
             dt.Columns.Add("Поставщик \\ Потребитель", typeof(string));
 
-            for (int j = 0; j < ColsCount; j++)
+            for (int j = 0; j < _cols; j++)
             {
                 dt.Columns.Add($"B{j + 1} ({demand[j]})", typeof(string));
             }
             dt.Columns.Add("Запасы (ai)", typeof(int));
 
-            for (int i = 0; i < RowsCount; i++)
+            for (int i = 0; i < _rows; i++)
             {
                 DataRow row = dt.NewRow();
                 row[0] = $"A{i + 1}";
 
-                for (int j = 0; j < ColsCount; j++)
+                for (int j = 0; j < _cols; j++)
                 {
                     int x = plan[i, j];
                     int c = costs[i, j];
                     totalCost += x * c;
 
-                    row[j + 1] = x > 0 ? $"{x}  [тариф: {c}]" : $"-  [тариф: {c}]";
+                    row[j + 1] = x > 0 ? $"{x} [тариф: {c}]" : $"- [тариф: {c}]";
                 }
-                row[ColsCount + 1] = supply[i];
+                row[_cols + 1] = supply[i];
                 dt.Rows.Add(row);
             }
 
+            ResultGrid.ItemsSource = null;
             ResultGrid.Columns.Clear();
             foreach (DataColumn col in dt.Columns)
             {
@@ -251,8 +307,156 @@ namespace WpfApp1
             }
 
             ResultGrid.ItemsSource = dt.DefaultView;
-            TxtMethodInfo.Text = $"Выбран метод: {methodName}";
-            TxtTotalCost.Text = $"Целевая функция F(x) = {totalCost} у.е.";
+
+            _resultTable = dt;
+            _resultMethod = $"Выбран метод: {methodName}";
+            _resultCost = $"Целевая функция F(x) = {totalCost} у.е.";
+            TxtMethodInfo.Text = _resultMethod;
+            TxtTotalCost.Text = _resultCost;
+        }
+
+        // ---------- Экспорт в Excel ----------
+
+        private void BtnExport_Click(object sender, RoutedEventArgs e)
+        {
+            InputGrid.CommitEdit(DataGridEditingUnit.Row, true);
+
+            var dialog = new SaveFileDialog
+            {
+                Filter = "Excel (*.xlsx)|*.xlsx",
+                FileName = "transport_task.xlsx"
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                using (var wb = new XLWorkbook())
+                {
+                    var wsInput = wb.Worksheets.Add("Исходные данные");
+                    WriteTable(wsInput, _inputTable);
+
+                    if (_resultTable != null)
+                    {
+                        var wsResult = wb.Worksheets.Add("Результат");
+                        WriteTable(wsResult, _resultTable);
+
+                        int r = _resultTable.Rows.Count + 3;
+                        wsResult.Cell(r, 1).Value = _resultMethod;
+                        wsResult.Cell(r + 1, 1).Value = _resultCost;
+                        wsResult.Cell(r, 1).Style.Font.Bold = true;
+                        wsResult.Cell(r + 1, 1).Style.Font.Bold = true;
+                    }
+
+                    wb.SaveAs(dialog.FileName);
+                }
+
+                MessageBox.Show("Данные сохранены в файл.", "Экспорт", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось сохранить файл (возможно, он открыт в Excel):\n" + ex.Message,
+                "Ошибка экспорта", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static void WriteTable(IXLWorksheet ws, DataTable dt)
+        {
+            for (int c = 0; c < dt.Columns.Count; c++)
+            {
+                var header = ws.Cell(1, c + 1);
+                header.Value = dt.Columns[c].ColumnName;
+                header.Style.Font.Bold = true;
+            }
+
+            for (int r = 0; r < dt.Rows.Count; r++)
+            {
+                for (int c = 0; c < dt.Columns.Count; c++)
+                {
+                    object v = dt.Rows[r][c];
+                    var cell = ws.Cell(r + 2, c + 1);
+                    if (v is int number) cell.Value = number;
+                    else cell.Value = Convert.ToString(v);
+                }
+            }
+
+            ws.Columns().AdjustToContents();
+        }
+
+        // ---------- Импорт из Excel ----------
+
+        private void BtnImport_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Filter = "Excel (*.xlsx)|*.xlsx" };
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                int[,] values;
+                int rows, cols;
+
+                using (var wb = new XLWorkbook(dialog.FileName))
+                {
+                    var ws = wb.Worksheet(1); // формат такой же, как при экспорте (лист «Исходные данные»)
+
+                    var lastRowUsed = ws.LastRowUsed();
+                    var lastColUsed = ws.LastColumnUsed();
+                    if (lastRowUsed == null || lastColUsed == null)
+                        throw new FormatException("Лист пуст.");
+
+                    // строка 1 — заголовки, последняя строка — потребности;
+                    // столбец 1 — названия, последний столбец — запасы
+                    rows = lastRowUsed.RowNumber() - 2;
+                    cols = lastColUsed.ColumnNumber() - 2;
+
+                    if (rows < 1 || cols < 1 || rows > MaxSize || cols > MaxSize)
+                        throw new FormatException(
+                        $"Неверный размер таблицы в файле. Допустимо от 1 до {MaxSize} поставщиков и потребителей.");
+
+                    values = new int[rows + 1, cols + 1];
+                    for (int i = 0; i <= rows; i++)
+                    {
+                        for (int j = 0; j <= cols; j++)
+                        {
+                            var cell = ws.Cell(i + 2, j + 2);
+                            string text = cell.GetString().Trim();
+
+                            if (text.Length == 0)
+                            {
+                                values[i, j] = 0;
+                            }
+                            else if (!int.TryParse(text, out int parsed) || parsed < 0)
+                            {
+                                throw new FormatException(
+                                $"Ячейка {cell.Address}: нужно целое неотрицательное число, а там «{text}».");
+                            }
+                            else
+                            {
+                                values[i, j] = parsed;
+                            }
+                        }
+                    }
+                }
+
+                // файл прочитан без ошибок — теперь можно перестроить таблицу
+                BuildInputGrid(rows, cols);
+                TxtRows.Text = rows.ToString();
+                TxtCols.Text = cols.ToString();
+
+                for (int i = 0; i <= rows; i++)
+                {
+                    for (int j = 0; j <= cols; j++)
+                    {
+                        // для строки потребностей последняя ячейка (итог запасов) остаётся 0
+                        if (i == rows && j == cols) continue;
+                        _inputTable.Rows[i][j + 1] = values[i, j];
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось загрузить данные:\n" + ex.Message,
+                "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
