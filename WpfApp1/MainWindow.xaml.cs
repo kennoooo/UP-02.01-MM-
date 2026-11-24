@@ -200,7 +200,6 @@ namespace WpfApp1
                     newCosts[i, _cols] = 0;
                 }
 
-                // Обновляем таблицу ввода в интерфейсе
                 string newColName = $"B{newCols} (фикт.)";
                 _inputTable.Columns.Add(newColName, typeof(int));
                 _inputTable.Columns[newColName].SetOrdinal(_cols + 1);
